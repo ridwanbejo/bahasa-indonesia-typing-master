@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bahasa Indonesia Typing Master — Phaser 3</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="css/style.css?v=5" />
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.88.2/dist/phaser.min.js"></script>
+</head>
+<body>
+  <!-- Phaser Game Container -->
+  <div id="game-container" aria-label="Bahasa Indonesia Typing Game Canvas"></div>
+
+  <!-- Live Bahasa Indonesia / English Typing Dock -->
+  <div id="ime-dock" class="ime-dock hidden">
+    <div class="ime-input-wrap">
+      <span class="ime-badge" id="ime-status-badge">INDONESIA</span>
+      <input
+        id="ime-input"
+        type="text"
+        lang="id"
+        dir="ltr"
+        inputmode="text"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        placeholder="Type the Bahasa Indonesia word and press Enter..."
+        aria-label="Type the highlighted word and press Enter"
+      />
+      <kbd class="enter-hint">Enter ↵</kbd>
+    </div>
+    <div class="ime-dock-meta">
+      <span id="ime-hint-text">Type the highlighted bottom row in <strong>Bahasa Indonesia</strong>, then press <strong>Enter</strong>.</span>
+      <div class="ime-dock-actions">
+        <button
+          id="btn-toggle-mode"
+          type="button"
+          class="btn-mode-toggle"
+          title="Switch between Bahasa Indonesia typing (with English translation) and English typing (with Bahasa Indonesia translation)"
+        >
+          <span class="toggle-arrows" aria-hidden="true">⇄</span>
+          <span id="btn-toggle-mode-label">ID → EN</span>
+        </button>
+        <button id="btn-quit-game" type="button" class="btn-mini">End Session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pre-Game Configuration Overlay -->
+  <div id="config-overlay" class="overlay">
+    <div class="modal config-modal">
+      <header class="modal-header">
+        <div class="brand-blocks" aria-hidden="true">
+          <span class="b-tile t1">I</span>
+          <span class="b-tile t2">D</span>
+          <span class="b-tile t3">N</span>
+        </div>
+        <div>
+          <h1>Bahasa Indonesia Typing Master</h1>
+          <p class="subtitle">Glosarium PASTI Indonesian – English Typing Challenge</p>
+        </div>
+        <button id="btn-open-credits" type="button" class="btn-credits">
+          <span class="credits-glyph" aria-hidden="true">★</span>
+          <span>Credits</span>
+        </button>
+      </header>
+
+      <div id="dataset-loading" class="dataset-banner loading">
+        Loading Glosarium PASTI Bahasa Indonesia – English dataset...
+      </div>
+
+      <form id="config-form" class="config-grid hidden" novalidate>
+        <!-- Practice Direction Toggle -->
+        <section class="config-card span-2 mode-card">
+          <div class="mode-toggle-row">
+            <div class="mode-toggle-info">
+              <label class="section-label">Practice Direction</label>
+              <span id="mode-desc-note" class="tiny-note">
+                Type Bahasa Indonesia blocks with English translation &amp; Indonesian syllable minimap
+              </span>
+            </div>
+            <div class="mode-switch-group" role="group" aria-label="Practice mode toggle">
+              <button
+                id="btn-mode-id"
+                type="button"
+                class="mode-pill active"
+                data-mode="id-to-en"
+                aria-pressed="true"
+              >
+                <span>Indonesia → EN</span>
+              </button>
+              <button
+                id="btn-config-mode-toggle"
+                type="button"
+                class="mode-switch-track"
+                role="switch"
+                aria-checked="false"
+                aria-label="Toggle between Bahasa Indonesia typing practice and English typing practice"
+              >
+                <span class="mode-switch-thumb"></span>
+              </button>
+              <button
+                id="btn-mode-en"
+                type="button"
+                class="mode-pill"
+                data-mode="en-to-id"
+                aria-pressed="false"
+              >
+                <span>EN → Indonesia</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 1. Word Field Filter (Bidang Ilmu) with Pop-up Picker -->
+        <section class="config-card span-2">
+          <div class="card-head">
+            <label class="section-label">1. Word Field Filter (Bidang Ilmu)</label>
+            <span id="field-filter-note" class="tiny-note">Glosarium PASTI domains</span>
+          </div>
+          <div class="field-filter-bar">
+            <div id="selected-fields-preview" class="selected-fields-preview">
+              <span class="field-tag field-tag-all">All Fields</span>
+            </div>
+            <div class="field-filter-actions">
+              <button id="btn-reset-fields" type="button" class="btn-outline hidden">
+                Reset All
+              </button>
+              <button id="btn-open-field-filter" type="button" class="btn-field-picker">
+                Choose Fields...
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Random Word Count (10 - 200) -->
+        <section class="config-card">
+          <div class="card-head">
+            <label class="section-label" for="word-count-number">2. Random Words (10 – 200)</label>
+            <input
+              id="word-count-number"
+              type="number"
+              min="10"
+              max="200"
+              value="30"
+              class="num-input"
+            />
+          </div>
+          <input
+            id="word-count-range"
+            type="range"
+            min="10"
+            max="200"
+            step="1"
+            value="30"
+            class="range-slider"
+          />
+          <div class="range-marks">
+            <span>10</span>
+            <span>50</span>
+            <span>100</span>
+            <span>150</span>
+            <span>200</span>
+          </div>
+        </section>
+
+        <!-- 3. Game Time (1 - 5 min, default 2 min) -->
+        <section class="config-card">
+          <div class="card-head">
+            <label class="section-label" for="game-time-range">3. Game Time (1 – 5 min)</label>
+            <span id="game-time-display" class="pill-value">2 min</span>
+          </div>
+          <input
+            id="game-time-range"
+            type="range"
+            min="1"
+            max="5"
+            step="1"
+            value="2"
+            class="range-slider"
+          />
+          <div class="range-marks">
+            <span>1m</span>
+            <span>2m</span>
+            <span>3m</span>
+            <span>4m</span>
+            <span>5m</span>
+          </div>
+        </section>
+
+        <!-- 4. Easiness Level -->
+        <section class="config-card span-2">
+          <label class="section-label" id="easiness-section-label">4. Easiness (Bahasa Indonesia Characters per Term)</label>
+          <div class="radio-row-4">
+            <label class="pill-radio diff-easy">
+              <input type="radio" name="easiness" value="easy" checked />
+              <span>
+                Easy
+                <small id="diff-easy-sub">1 – 7 chars</small>
+              </span>
+            </label>
+            <label class="pill-radio diff-medium">
+              <input type="radio" name="easiness" value="medium" />
+              <span>
+                Medium
+                <small id="diff-medium-sub">8 – 12 chars</small>
+              </span>
+            </label>
+            <label class="pill-radio diff-hard">
+              <input type="radio" name="easiness" value="hard" />
+              <span>
+                Hard
+                <small id="diff-hard-sub">13 – 20 chars</small>
+              </span>
+            </label>
+            <label class="pill-radio diff-all">
+              <input type="radio" name="easiness" value="all" />
+              <span>
+                All Lengths
+                <small id="diff-all-sub">All lengths</small>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <!-- Live Dictionary Pool Summary & Start CTA -->
+        <div class="config-footer span-2">
+          <div id="pool-summary" class="pool-summary">
+            Matching words: <strong>0</strong>
+          </div>
+          <button id="btn-start-game" type="submit" class="btn-primary">
+            Start Typing Challenge
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Field of Words Filter Pop-up Overlay -->
+  <div
+    id="field-filter-overlay"
+    class="overlay overlay-top hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="field-filter-title"
+  >
+    <div class="modal field-modal">
+      <div class="field-modal-header">
+        <div>
+          <h2 id="field-filter-title">Filter Word Fields (Bidang Ilmu)</h2>
+          <p class="subtitle">Select one or more glossary fields, or leave all selected to practice every domain.</p>
+        </div>
+        <button id="btn-close-field-x" type="button" class="btn-icon-close" aria-label="Close field filter">&times;</button>
+      </div>
+
+      <div class="field-modal-toolbar">
+        <input
+          id="field-search-input"
+          type="search"
+          class="field-search-input"
+          placeholder="Search fields (e.g. Tata Boga, Biologi, Antropologi)..."
+          aria-label="Search glossary fields"
+          autocomplete="off"
+        />
+        <div class="field-toolbar-btns">
+          <button id="btn-fields-select-all" type="button" class="btn-outline">Select All</button>
+          <button id="btn-fields-clear-all" type="button" class="btn-outline">Clear All</button>
+        </div>
+      </div>
+
+      <div id="field-selection-summary" class="field-selection-summary">
+        Selected: <strong>All Fields</strong>
+      </div>
+
+      <div id="field-list-grid" class="field-list-grid" role="group" aria-label="Glossary fields">
+        <!-- Populated dynamically from glosarium_pasti.csv -->
+      </div>
+
+      <div class="field-modal-actions">
+        <button id="btn-cancel-field-filter" type="button" class="btn-secondary">Cancel</button>
+        <button id="btn-apply-field-filter" type="button" class="btn-primary">Apply Field Filter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over / Results Overlay -->
+  <div id="results-overlay" class="overlay hidden">
+    <div class="modal results-modal">
+      <div class="results-badge" id="results-badge">TIME'S UP</div>
+      <h2 id="results-title">Session Complete</h2>
+      <p id="results-subtitle" class="subtitle"></p>
+
+      <div class="stats-grid">
+        <div class="stat-card accent-crimson">
+          <span class="stat-label">Final Score</span>
+          <strong class="stat-value" id="res-score">0</strong>
+          <span class="stat-unit">points (+10 / word)</span>
+        </div>
+        <div class="stat-card accent-ruby">
+          <span class="stat-label">Speed</span>
+          <strong class="stat-value" id="res-wpm">0.0</strong>
+          <span class="stat-unit">Words / Min (WPM)</span>
+        </div>
+        <div class="stat-card accent-garnet">
+          <span class="stat-label">Words Cleared</span>
+          <strong class="stat-value" id="res-cleared">0 / 0</strong>
+          <span class="stat-unit" id="res-time">0:00 elapsed</span>
+        </div>
+        <div class="stat-card accent-ink">
+          <span class="stat-label">Accuracy</span>
+          <strong class="stat-value" id="res-accuracy">100%</strong>
+          <span class="stat-unit" id="res-mistakes">0 mistakes</span>
+        </div>
+      </div>
+
+      <div class="results-actions">
+        <button id="btn-play-again" type="button" class="btn-primary">Play Again</button>
+        <button id="btn-back-config" type="button" class="btn-secondary">Change Settings</button>
+        <button id="btn-results-credits" type="button" class="btn-credits">
+          <span class="credits-glyph" aria-hidden="true">★</span>
+          <span>Credits</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credits Popup Overlay -->
+  <div id="credits-overlay" class="overlay overlay-top hidden" role="dialog" aria-modal="true" aria-labelledby="credits-title">
+    <div class="modal credits-modal">
+      <div class="credits-header">
+        <h2 id="credits-title">Credits</h2>
+        <button id="btn-close-credits-x" type="button" class="btn-icon-close" aria-label="Close credits">&times;</button>
+      </div>
+      <div id="credits-content" class="credits-content">
+        Loading credits...
+      </div>
+      <div class="credits-actions">
+        <button id="btn-close-credits" type="button" class="btn-primary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/vocabLoader.js?v=5"></script>
+  <script src="js/gameScene.js?v=5"></script>
+  <script src="js/main.js?v=5"></script>
+</body>
+</html>
